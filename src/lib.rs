@@ -224,6 +224,8 @@ pub struct YoutubeDl {
     url: String,
     process_timeout: Option<Duration>,
     extract_audio: bool,
+    simulate: bool,
+    destination_path: Option<String>,
 }
 
 impl YoutubeDl {
@@ -241,6 +243,8 @@ impl YoutubeDl {
             referer: None,
             process_timeout: None,
             extract_audio: false,
+            simulate: true,
+            destination_path: None,
         }
     }
 
@@ -310,6 +314,18 @@ impl YoutubeDl {
         self
     }
 
+    /// Set the output flag
+    pub fn simulate(&mut self, simulate: bool) -> &mut Self {
+        self.simulate = simulate;
+        self
+    }
+
+    /// Set the destination path of the downloaded file. The string has to be a template like:
+    /// "destination/path/%(title)s-%(id)s.%(ext)s"
+    pub fn destination_path(&mut self, path: String) -> &mut Self {
+        self.destination_path = Option::from(path);
+        self
+    }
     fn path(&self) -> &Path {
         match &self.youtube_dl_path {
             Some(path) => path,
@@ -358,7 +374,17 @@ impl YoutubeDl {
             args.push("--extract-audio");
         }
 
-        args.push("-J");
+        if let Some(path) = &self.destination_path {
+            args.push("-o");
+            args.push(path);
+        }
+
+        // By default, only simulate and not download any files.
+        if self.simulate{
+            args.push("-J");
+        }else {
+            args.push("--print-json")
+        }
         args.push(&self.url);
         log::debug!("youtube-dl arguments: {:?}", args);
 
